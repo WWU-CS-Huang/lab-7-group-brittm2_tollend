@@ -6,6 +6,7 @@ import java.util.Scanner;
 import java.io.File;
 import java.io.FileNotFoundException;
 import heap.Heap;
+import avl.AVL;
 
 public class Huffman {
     public String getGreeting() {
