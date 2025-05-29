@@ -9,9 +9,6 @@ import heap.Heap;
 import avl.AVL;
 
 public class Huffman {
-    public String getGreeting() {
-        return "Hello World!";
-    }
 
     public static void main(String[] args) {
         Scanner sc;
