@@ -9,10 +9,6 @@ import heap.Heap;
 import avl.AVL;
 
 public class Huffman {
-    public String getGreeting() {
-        return "Hello World!";
-    }
-
     public static void main(String[] args) {
         Scanner sc;
 
@@ -22,5 +18,18 @@ public class Huffman {
             e.printStackTrace();
             return;
         }
+        Heap<String, Integer> h = countFrequencies(sc);
+    }
+    
+    
+    public static Heap<String, Integer> countFrequencies(Scanner input){
+        while(input.hasNextLine()){
+            String line = input.nextLine();
+            for(int i = 0; i < line.length(); i++){
+                System.out.print(line.charAt(i));
+            }
+            System.out.println("");
+        }
+        return null;
     }
 }
