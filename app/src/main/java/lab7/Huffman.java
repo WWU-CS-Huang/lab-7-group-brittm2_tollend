@@ -7,29 +7,140 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import heap.Heap;
 import avl.AVL;
+import java.util.HashMap; 
 
 public class Huffman {
-    public static void main(String[] args) {
-        Scanner sc;
 
+    public static class Node{
+        public String key;
+        public Integer freq;
+        public Node left;
+        public Node right;
+        public Node parent;
+        public StringBuilder path;
+
+        public Node(String s, Integer v){
+            key = s;
+            freq = v;
+        }
+        public Node(Node left, Node right){
+            this.freq = left.freq + right.freq;
+            this.left = left;
+            this.right = right;
+            this.left.parent = this;
+            this.right.parent = this;
+            this.path = new StringBuilder();
+        }
+    }
+
+    public static void main(String[] args) {
+        Node tree = createTree(args[0]);
+        printTree(tree);
+        encode(args[0], tree);
+        System.out.println("Eventually decode");
+    }
+    
+
+    public static void encode(String fileName, Node tree){
+        StringBuilder code = new StringBuilder();
+        Scanner sc;
+        File input = new File(fileName);
         try{
-            sc = new Scanner(new File(args[0]));
+            sc = new Scanner(input);
         } catch (FileNotFoundException e){
             e.printStackTrace();
             return;
         }
-        Heap<String, Integer> h = countFrequencies(sc);
+
+        return;
+    }
+
+    public static void convertToBit(Node tree, StringBuilder code, String c){
+        if (tree.left == null && tree.right == null) {
+			code.append(c);
+			return;
+		}
+
+		convertToBit(tree.left, code, c + '0');
+		convertToBit(tree.right, code, c + '1');
+	}
+
+    public static Node createTree(String fileName){
+        Scanner sc;
+        File input = new File(fileName);
+        try{
+            sc = new Scanner(input);
+        } catch (FileNotFoundException e){
+            e.printStackTrace();
+            return null;
+        }
+        HashMap<String, Integer> map = countFrequencies(sc);
+        Heap<Node, Integer> h = mapToHeap(map);
+        Node tree = heapToTree(h);
+        sc.close();
+        return tree;
+    }
+
+    public static void printHeap(Heap<String, Integer> h){
+        String i = h.poll();
+        if(i != null){
+            System.out.println("Value: " + i);
+            printHeap(h);
+        }
+
     }
     
-    
-    public static Heap<String, Integer> countFrequencies(Scanner input){
+    public static HashMap<String, Integer> countFrequencies(Scanner input){
+        HashMap<String, Integer> map = new HashMap<String, Integer>();
         while(input.hasNextLine()){
             String line = input.nextLine();
             for(int i = 0; i < line.length(); i++){
-                System.out.print(line.charAt(i));
+                String activeChar = String.valueOf(line.charAt(i));
+                if(map.containsKey(activeChar)){                   
+                    map.put(activeChar, map.get(activeChar)+1);
+                } else {
+                    map.put(activeChar, 1);
+                }
+                
             }
-            System.out.println("");
         }
-        return null;
+        //System.out.println(map.values());     //debug helpers
+        //System.out.println(map.keySet());
+
+        return map;
+    }
+
+    public static Heap<Node, Integer> mapToHeap(HashMap<String, Integer> map){
+       Heap<Node, Integer> h = new Heap<Node, Integer>();
+        map.forEach( (k, v) -> {
+            Node n = new Node(k, v);
+            n.path = new StringBuilder();
+            h.add(n, v);
+        ;});
+        return h;
+    }
+
+    public static Node heapToTree(Heap<Node, Integer> h){
+        while(h.size() != 1){
+            Node n = new Node(h.poll(), h.poll());
+
+            h.add(n, n.freq);
+        }
+        return h.poll();
+    }
+
+    public static void printTree(Node root) {
+    printSubtree(root, 0);
+    }
+    private static void printSubtree(Node n, int level) {
+        if (n == null) {
+        return;
+        }
+        printSubtree(n.right, level + 1);
+        for (int i = 0; i < level; i++) {
+        System.out.print("        ");
+        }
+        System.out.println(n.key + " " + n.freq + " " + n.path);
+        printSubtree(n.left, level + 1);
     }
 }
