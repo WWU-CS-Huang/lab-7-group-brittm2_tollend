@@ -6,53 +6,68 @@ import java.util.Scanner;
 import java.io.File;
 import java.io.FileNotFoundException;
 import heap.Heap;
-import avl.AVL;
 import java.util.HashMap; 
-import java.util.ArrayList;
 import java.util.Map;
 
 public class Huffman {
-
+    //Node class to represent each character and its frequency in the Huffman tree
     public static class Node{
         public String key;
         public Integer freq;
         public Node left;
         public Node right;
         public Node parent;
-        public StringBuilder path;
 
+        //Initailizes a root node
         public Node(String s, Integer v){
             key = s;
             freq = v;
         }
+        //Intitailizes a child node
         public Node(Node left, Node right){
             this.freq = left.freq + right.freq;
             this.left = left;
             this.right = right;
             this.left.parent = this;
             this.right.parent = this;
-            this.path = new StringBuilder();
         }
     }
 
+    /*  Manages the Huffman coding process of the passed file name
+     *  Huffman tkes a one command-line argument that speficies a filename
+     *  The program reads the contents of that file as an input string
+     *  It then creates a Huffman tree based on the frequencies of characters in the input string
+     * 
+     *  If the length of the input string is less then 100 characters, it prints:
+     *  - The original input string
+     *  - The encoded string
+     *  - The decoded string
+     *  Regardless of size, it prints:
+     *  - Whether the decoded string equals the original input string
+     *  - The compression ratio of the encoded string compared to the original input string
+     *  Precondition: The file must exist and be readable
+     */
     public static void main(String[] args) {
         Node tree = createTree(args[0]); //Create the Huffman coding tree from the input file
         Map<String, String> bitMap = null;  //Start with an empty map for frequencies
         StringBuilder inputString = getInput(args[0]);  //Get original input for comparison
         StringBuilder encodedString = encode(args[0], tree, bitMap); //Encode (turn letters into numbers)
-        StringBuilder decodedString = decode(tree, tree, new StringBuilder(encodedString), new StringBuilder()); //Turn numbers into letters
+        StringBuilder decodedString = decode(tree, new StringBuilder(encodedString), new StringBuilder()); //Turn numbers into letters
         //printTree(tree);   // Uncomment to print the Huffman tree structure(hard to read with large files)
         if(decodedString.length() < 100){  // Print only if the decoded string is short enough
-            System.out.println(inputString);
-            System.out.println(encodedString);
-            System.out.println(decodedString);
+            System.out.println("Input string: " + inputString);
+            System.out.println("Encoded string: " + encodedString);
+            System.out.println("Decoded string: " + decodedString);
         }
         // Always print these 
-        System.out.println("Decoded equals input: " + inputString.equals(decodedString));
-        System.out.println("Compression Ratio: " + encodedString.length() / (inputString.length() / 8.0));
+        System.out.println("Decoded equals input: " + inputString.toString().equals(decodedString.toString()));
+        System.out.println("Compression Ratio: " + (((float) encodedString.length() / inputString.length()) / 8.0));
     }
     
-    //Turns input file into a StringBuilder to look at and compare with
+    /*  Find the input from the passed file and returns with a stringBuilder object containing the input file
+     *  Precondition: The file must exist and be readable
+     *  Postcondition: Returns a StringBuilder object containing the input string
+     */
     public static StringBuilder getInput(String fileName){
         StringBuilder retString = new StringBuilder();
         Scanner sc;
@@ -63,9 +78,10 @@ public class Huffman {
             e.printStackTrace();
             return null;
         }
-
+        //Invariant: The file passed has a finite number of lines and does not change
         while(sc.hasNextLine()){
             String line = sc.nextLine();
+            //Invariant: The line passed has a finite number of characters and does not change
             for(int i = 0; i < line.length(); i++){
                 String activeChar = String.valueOf(line.charAt(i));
                 retString.append(activeChar);               
@@ -74,37 +90,45 @@ public class Huffman {
         return retString;
     }
 
-    //Decode method that traverses the Huffman tree recursively  to decode the encoded string
-    //Base case is when string is empty or when a leaf node is reached
-    //Recursively traverses left or right based on the bit in the encoded string
-    public static StringBuilder decode(Node root, Node activeNode, StringBuilder encodedString, StringBuilder decoded){
-        if (activeNode.key != null) {
-            decoded.append(activeNode.key);
-        if (encodedString.length() == 0) {
-            return decoded;
+    /*Decode method that traverses the Huffman tree recursively  to decode the encoded string
+    * Precondition: Root is the root of our Huffman tree
+    *               Encoded string contains the encoded bits of the string to be decoded
+    *               Decoded string is the string contining everything decoded so far
+    * Postcondition: Returns decoded, which contains the encoded string after decoding
+    */
+    public static StringBuilder decode(Node root, StringBuilder encodedString, StringBuilder decoded){
+        Node curr = root;
+        //Invariant: The encoded string is finite and does not change
+        for(int i = 0; i < encodedString.length(); i++){
+            char bit = encodedString.charAt(i);
+            if(bit == '0'){ //if 0, go left
+                curr = curr.left;
+            } else if(bit == '1'){ //if 1, go right
+                curr = curr.right;
+            }
+            if(curr.left == null && curr.right == null){ //If leaf node is reached
+                decoded.append(curr.key); //Append the character to the decoded string
+                curr = root; //Reset to root for next character
+            }
         }
-        return decode(root, root, encodedString, decoded);
-        }
-        if (encodedString.length() == 0) {
-            return decoded;
-        }
-        char bit = encodedString.charAt(0);
-        encodedString.deleteCharAt(0);
-        if (bit == '0') {
-            return decode(root, activeNode.left, encodedString, decoded);
-        } else {
-            return decode(root, activeNode.right, encodedString, decoded);
-        }
+        return decoded; //Return the decoded string
     }
 
-    //Create a map of characters to their binary codes
+    /* Creates a map of characters to their corresponding bit codes
+     * Precondition: The tree must be a completed Huffman tree (not null)
+     * Postcondition: Returns a map where keys are characters and values are their bit codes
+     */
     public static Map<String, String> createBitMap(Node tree){
         Map<String,String> codes = new HashMap<String,String>();
         convertToBit(tree, codes, "");
         return codes;
     }
 
-    //Encode the input file
+    /* Uses a Huffman tree rooted at tree to encode the text from the file specified by fileName
+     * Precondition: The file must exist and be readable
+     *               The tree must be a completed Huffman tree (not null)
+     * Postcondition: Returns a StringBuilder containing the encoded string of bits
+     */
     public static StringBuilder encode(String fileName, Node tree, Map<String, String> codes){
         codes = createBitMap(tree);
         StringBuilder encoded = new StringBuilder();
@@ -116,9 +140,10 @@ public class Huffman {
             e.printStackTrace();
             return null;
         }
-        //System.out.println(codes);
+        //Invariant: The file passed has a finite number of lines and does not change
         while(sc.hasNextLine()){
             String line = sc.nextLine();
+            //Invariant: The line  has a finite number of characters and does not change
             for(int i = 0; i < line.length(); i++){
                 String activeChar = String.valueOf(line.charAt(i));
                 encoded.append(codes.get(activeChar));               
@@ -127,6 +152,13 @@ public class Huffman {
         return encoded;
     }
 
+
+    /* Converts the Huffman tree into a map of characters to their corresponding bit codes
+     * Precondition: The tree must be a completed Huffman tree (not null)
+     *               The code map should contain all previously mapped codes
+     * Postcondition: The code map is filled with the leafs of tree and their corresponding bit codes
+     * Invariant: All branches end in leaves, which don't recurse. Tree is also finite and does not change
+     */
     public static void convertToBit(Node tree, Map<String,String> code, String c){
         if (tree.left == null && tree.right == null) {
 			code.put(tree.key,c);
@@ -137,6 +169,11 @@ public class Huffman {
 		convertToBit(tree.right, code, c + '1');
 	}
 
+    /* Creates a Huffman tree from the file specified by fileName
+     * Precondition: The file must exist and be readable
+     * Postcondition: Returns a Node representing the root of the Huffman tree
+     *                The root is a completed Huffman tree containing all characters and their frequencies
+     */
     public static Node createTree(String fileName){
         Scanner sc;
         File input = new File(fileName);
@@ -153,6 +190,11 @@ public class Huffman {
         return tree;
     }
 
+    /* Prints all values in the heap
+     * Precondition: The heap must not be null
+     * Postcondition: The heap contains one less element after each call
+     * Invariant: The heap is finite
+     */
     public static void printHeap(Heap<String, Integer> h){
         String i = h.poll();
         if(i != null){
@@ -162,10 +204,16 @@ public class Huffman {
 
     }
     
+    /* Creates a map containing the keys of characters in the input file and values of the frequencies of each character
+     * Precondition: The input must be a valid Scanner object that reads from a file
+     * Postcondition: Returns a HashMap where keys are characters and values are their frequencies
+     */
     public static HashMap<String, Integer> countFrequencies(Scanner input){
         HashMap<String, Integer> map = new HashMap<String, Integer>();
+        //Invariant: The file passed has a finite number of lines and does not change
         while(input.hasNextLine()){
             String line = input.nextLine();
+            //Invariant: The line has a finite number of characters and does not change
             for(int i = 0; i < line.length(); i++){
                 String activeChar = String.valueOf(line.charAt(i));
                 if(map.containsKey(activeChar)){                   
@@ -176,34 +224,45 @@ public class Huffman {
                 
             }
         }
-        //System.out.println(map.values());     //debug helpers
-        //System.out.println(map.keySet());
-
         return map;
     }
 
+    /* For every key-value pair in the map, creates a Node with the key and value, and adds the Node to the heap
+     * Precondition: The map must not be null
+     * Postcondition: Returns a Heap containing Nodes with keys and their frequencies from the map
+     */
     public static Heap<Node, Integer> mapToHeap(HashMap<String, Integer> map){
        Heap<Node, Integer> h = new Heap<Node, Integer>();
         map.forEach( (k, v) -> {
             Node n = new Node(k, v);
-            n.path = new StringBuilder();
             h.add(n, v);
         ;});
         return h;
     }
 
+    /* Converts a heap of Nodes into a Huffman tree whose nodes are the nodes of the heap
+     * Precondition: The heap must not be null and must contain at least two elements
+     * Postcondition: Heap is reduced to one element, which is the root of the Huffman tree, which is returned
+     */
     public static Node heapToTree(Heap<Node, Integer> h){
-        while(h.size() != 1){
+        //Invariant: The heap is finite has a minimum of two elements
+        while(h.size() > 1){
             Node n = new Node(h.poll(), h.poll());
-
             h.add(n, n.freq);
         }
         return h.poll();
     }
 
+    //Initailizes a method to print the Huffman tree in a readable format
     public static void printTree(Node root) {
-    printSubtree(root, 0);
+        printSubtree(root, 0);
     }
+
+    /* Prints the nodes of a tree in a readable format including the key and frequency of each node
+     * Precondition: The node must not be null, level >= 0
+     * Postcondition: Prints the tree structure to the console and level is incremented
+     * Invariant: The tree is finite and does not change
+     */
     private static void printSubtree(Node n, int level) {
         if (n == null) {
         return;
@@ -212,7 +271,7 @@ public class Huffman {
         for (int i = 0; i < level; i++) {
         System.out.print("        ");
         }
-        System.out.println(n.key + " " + n.freq + " " + n.path);
+        System.out.println(n.key + " " + n.freq);
         printSubtree(n.left, level + 1);
     }
 }
