@@ -36,20 +36,23 @@ public class Huffman {
     }
 
     public static void main(String[] args) {
-        Node tree = createTree(args[0]);
-        Map<String, String> bitMap = null;
-        StringBuilder inputString = getInput(args[0]);
-        StringBuilder encodedString = encode(args[0], tree, bitMap);
-        StringBuilder decodedString = decode(tree, tree, new StringBuilder(encodedString), new StringBuilder());
-        //printTree(tree);
-        if(decodedString.length() < 100){
+        Node tree = createTree(args[0]); //Create the Huffman coding tree from the input file
+        Map<String, String> bitMap = null;  //Start with an empty map for frequencies
+        StringBuilder inputString = getInput(args[0]);  //Get original input for comparison
+        StringBuilder encodedString = encode(args[0], tree, bitMap); //Encode (turn letters into numbers)
+        StringBuilder decodedString = decode(tree, tree, new StringBuilder(encodedString), new StringBuilder()); //Turn numbers into letters
+        //printTree(tree);   // Uncomment to print the Huffman tree structure(hard to read with large files)
+        if(decodedString.length() < 100){  // Print only if the decoded string is short enough
             System.out.println(inputString);
             System.out.println(encodedString);
             System.out.println(decodedString);
         }
-
+        // Always print these 
+        System.out.println("Decoded equals input: " + inputString.equals(decodedString));
+        System.out.println("Compression Ratio: " + encodedString.length() / (inputString.length() / 8.0));
     }
     
+    //Turns input file into a StringBuilder to look at and compare with
     public static StringBuilder getInput(String fileName){
         StringBuilder retString = new StringBuilder();
         Scanner sc;
@@ -71,35 +74,37 @@ public class Huffman {
         return retString;
     }
 
+    //Decode method that traverses the Huffman tree recursively  to decode the encoded string
+    //Base case is when string is empty or when a leaf node is reached
+    //Recursively traverses left or right based on the bit in the encoded string
     public static StringBuilder decode(Node root, Node activeNode, StringBuilder encodedString, StringBuilder decoded){
-        if(activeNode.key != null){
+        if (activeNode.key != null) {
             decoded.append(activeNode.key);
-            if(encodedString.length() == 0){
-                return decoded;
-            }else{
-                decode(root, root, encodedString, decoded);
-
-            }
-        }else{
-            if(encodedString.length() == 0){
-                return decoded;
-            }else if(encodedString.charAt(0) == '0'){
-                encodedString = encodedString.deleteCharAt(0);
-                decode(root, activeNode.left, encodedString, decoded);
-            }else if(encodedString.charAt(0) == '1'){
-                encodedString = encodedString.deleteCharAt(0);
-                decode(root, activeNode.right, encodedString, decoded);
-            }
+        if (encodedString.length() == 0) {
+            return decoded;
         }
-        return decoded;
+        return decode(root, root, encodedString, decoded);
+        }
+        if (encodedString.length() == 0) {
+            return decoded;
+        }
+        char bit = encodedString.charAt(0);
+        encodedString.deleteCharAt(0);
+        if (bit == '0') {
+            return decode(root, activeNode.left, encodedString, decoded);
+        } else {
+            return decode(root, activeNode.right, encodedString, decoded);
+        }
     }
 
+    //Create a map of characters to their binary codes
     public static Map<String, String> createBitMap(Node tree){
         Map<String,String> codes = new HashMap<String,String>();
         convertToBit(tree, codes, "");
         return codes;
     }
 
+    //Encode the input file
     public static StringBuilder encode(String fileName, Node tree, Map<String, String> codes){
         codes = createBitMap(tree);
         StringBuilder encoded = new StringBuilder();
@@ -111,7 +116,6 @@ public class Huffman {
             e.printStackTrace();
             return null;
         }
-        convertToBit(tree, codes, "");
         //System.out.println(codes);
         while(sc.hasNextLine()){
             String line = sc.nextLine();
@@ -119,8 +123,7 @@ public class Huffman {
                 String activeChar = String.valueOf(line.charAt(i));
                 encoded.append(codes.get(activeChar));               
             }
-        }
-        
+        }      
         return encoded;
     }
 
