@@ -8,6 +8,8 @@ import java.io.FileNotFoundException;
 import heap.Heap;
 import avl.AVL;
 import java.util.HashMap; 
+import java.util.ArrayList;
+import java.util.Map;
 
 public class Huffman {
 
@@ -35,29 +37,96 @@ public class Huffman {
 
     public static void main(String[] args) {
         Node tree = createTree(args[0]);
-        printTree(tree);
-        encode(args[0], tree);
-        System.out.println("Eventually decode");
+        Map<String, String> bitMap = null;
+        StringBuilder inputString = getInput(args[0]);
+        StringBuilder encodedString = encode(args[0], tree, bitMap);
+        StringBuilder decodedString = decode(tree, tree, new StringBuilder(encodedString), new StringBuilder());
+        //printTree(tree);
+        if(decodedString.length() < 100){
+            System.out.println(inputString);
+            System.out.println(encodedString);
+            System.out.println(decodedString);
+        }
+
     }
     
-
-    public static void encode(String fileName, Node tree){
-        StringBuilder code = new StringBuilder();
+    public static StringBuilder getInput(String fileName){
+        StringBuilder retString = new StringBuilder();
         Scanner sc;
         File input = new File(fileName);
         try{
             sc = new Scanner(input);
         } catch (FileNotFoundException e){
             e.printStackTrace();
-            return;
+            return null;
         }
 
-        return;
+        while(sc.hasNextLine()){
+            String line = sc.nextLine();
+            for(int i = 0; i < line.length(); i++){
+                String activeChar = String.valueOf(line.charAt(i));
+                retString.append(activeChar);               
+            }
+        }
+        return retString;
     }
 
-    public static void convertToBit(Node tree, StringBuilder code, String c){
+    public static StringBuilder decode(Node root, Node activeNode, StringBuilder encodedString, StringBuilder decoded){
+        if(activeNode.key != null){
+            decoded.append(activeNode.key);
+            if(encodedString.length() == 0){
+                return decoded;
+            }else{
+                decode(root, root, encodedString, decoded);
+
+            }
+        }else{
+            if(encodedString.length() == 0){
+                return decoded;
+            }else if(encodedString.charAt(0) == '0'){
+                encodedString = encodedString.deleteCharAt(0);
+                decode(root, activeNode.left, encodedString, decoded);
+            }else if(encodedString.charAt(0) == '1'){
+                encodedString = encodedString.deleteCharAt(0);
+                decode(root, activeNode.right, encodedString, decoded);
+            }
+        }
+        return decoded;
+    }
+
+    public static Map<String, String> createBitMap(Node tree){
+        Map<String,String> codes = new HashMap<String,String>();
+        convertToBit(tree, codes, "");
+        return codes;
+    }
+
+    public static StringBuilder encode(String fileName, Node tree, Map<String, String> codes){
+        codes = createBitMap(tree);
+        StringBuilder encoded = new StringBuilder();
+        Scanner sc;
+        File input = new File(fileName);
+        try{
+            sc = new Scanner(input);
+        } catch (FileNotFoundException e){
+            e.printStackTrace();
+            return null;
+        }
+        convertToBit(tree, codes, "");
+        //System.out.println(codes);
+        while(sc.hasNextLine()){
+            String line = sc.nextLine();
+            for(int i = 0; i < line.length(); i++){
+                String activeChar = String.valueOf(line.charAt(i));
+                encoded.append(codes.get(activeChar));               
+            }
+        }
+        
+        return encoded;
+    }
+
+    public static void convertToBit(Node tree, Map<String,String> code, String c){
         if (tree.left == null && tree.right == null) {
-			code.append(c);
+			code.put(tree.key,c);
 			return;
 		}
 
